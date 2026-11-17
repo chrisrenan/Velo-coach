@@ -18,7 +18,7 @@ h2{font-size:17px;line-height:1.2;margin:28px 0 10px;display:flex;align-items:ce
 h3{font-size:15px;margin:16px 0 6px}
 .mu{color:var(--mu);font-size:13px}.big{font:700 60px/1 var(--f);letter-spacing:-.03em}
 .box{background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:16px;margin:10px 0}
-.hero{background:linear-gradient(135deg,var(--hf),var(--ht));color:#fff;border-radius:20px;padding:20px 18px 14px}.hero .mu{color:rgba(255,255,255,.8)}.hero .days{height:84px}.hero .days i{background:#fff}.hero .days div{color:rgba(255,255,255,.8)}
+.hero{background:linear-gradient(135deg,var(--hf),var(--ht));color:#fff;border-radius:20px;padding:20px 18px 14px}.hero .mu{color:rgba(255,255,255,.8)}.hero .days{height:84px;gap:3px}.hero .days i{background:#fff}.hero .days div{color:rgba(255,255,255,.8)}
 .days{display:flex;gap:6px;align-items:flex-end;height:64px;margin-top:12px}.days div{flex:1;text-align:center;font-size:11px;color:var(--mu)}.days i{display:block;background:var(--ac);border-radius:4px;min-height:3px;margin-bottom:3px}
 .g{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .g>div{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:12px 14px}
@@ -54,6 +54,7 @@ nav .on{color:var(--ac);font-weight:700}
 .ic{width:20px;height:20px;stroke:var(--rcc);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.rc-chip .ic{width:16px;height:16px}.ic.heart{animation:beat 1.1s ease-in-out infinite;transform-origin:center}.dash{animation:dsh 1s linear infinite}
 .rc-s{list-style:none;counter-reset:s;padding:0;margin:12px 0 0}.rc-s li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;margin:8px 0}.rc-s li::before{content:counter(s);flex:none;width:22px;height:22px;border-radius:50%;background:var(--rcc);color:var(--on);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}.rc-s b{display:block;font-size:14px}.rc-s span{font-size:13px;color:var(--mu)}
 @media (prefers-reduced-motion:reduce){.rc,.rc *{animation:none!important}}
+.msel{margin-top:10px}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 </style></head><body>
 <main id="v"></main>
@@ -73,11 +74,12 @@ nav .on{color:var(--ac);font-weight:700}
 const K='velocoach',$=s=>document.querySelector(s);
 const T=["Vélo de route","Vélo d’intérieur","MyWhoosh","Marche","Course à pied","Renforcement","Repos"];
 const bike=a=>T.slice(0,3).includes(a.type);
-const D={profile:{age:40,weight:92,height:'',goalW:'',fcmax:170,rideDay:6,renfo:2},acts:[],weights:[],recov:[]};
-let S=null,per='week',nd=(new Date().getDay()+6)%7,tab='home',edit=null,msg='',io='',draft=null,wx=null,wxErr='',wxBusy=false;
+const D={profile:{age:40,weight:92,height:'',goalW:'',fcmax:170,rideDay:'auto',renfo:2,v3:1},acts:[],weights:[],recov:[]};
+let S=null,per='week',mo='',nd=(new Date().getDay()+6)%7,tab='home',edit=null,msg='',io='',draft=null,wx=null,wxErr='',wxBusy=false;
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
 if(!S||!S.profile)S=JSON.parse(JSON.stringify(D));
 S.profile=Object.assign({},D.profile,S.profile);
+if(!S.profile.v3){S.profile.rideDay='auto';S.profile.v3=1}
 const td=()=>new Date().toLocaleDateString('sv');
 const addd=(s,k)=>{const d=new Date(s+'T12:00');d.setDate(d.getDate()+k);return d.toLocaleDateString('sv')};
 const dn=s=>Math.round((new Date(td()+'T12:00')-new Date(s+'T12:00'))/864e5);
@@ -113,15 +115,8 @@ const CATS=['Courte (moins de 45 km)','Moyenne (45 à 70 km)','Longue (70 km et 
 const cat=a=>a.dist>=70?CATS[2]:a.dist>=45?CATS[1]:CATS[0];
 const rel=a=>a.dp==null||!a.dist?null:a.dp/a.dist;
 const ride=()=>S.acts.filter(a=>a.type=="Vélo de route"&&a.dist>=25&&a.sp).sort((a,b)=>a.d.localeCompare(b.d));
-const load=a=>a.type=='Repos'?0:(a.dur||0)*(a.rpe||5);
-const wl=k=>sum(S.acts.filter(a=>dn(a.d)>=0&&Math.floor(dn(a.d)/7)==k),load);
-function acwr(){const fa=S.acts.filter(a=>a.type!='Repos'&&dn(a.d)>=0);if(!fa.length)return null;
- const hist=dn(fa.map(a=>a.d).sort()[0])+1,win=Math.max(0,Math.min(28,hist-7)),ac=fa.filter(a=>dn(a.d)<7),ref=fa.filter(a=>dn(a.d)>=7&&dn(a.d)<7+win),ls=sum(ref,load),a=sum(ac,load),ok=win>=14&&ls>0;
- return{a,n:ac.length,hist,w:Math.round(win/7),c:ok?ls/(win/7):null,r:ok?a/(ls/(win/7)):null,miss:fa.filter(x=>dn(x.d)<7+win&&!x.rpe).length}}
-const acl=r=>r>1.5?['ko','Hausse très forte']:r>1.3?['wa','Hausse marquée']:r>=0.8?['ok','Charge habituelle']:['wa','Semaine plus légère'];
-const PER=()=>{const t=td(),mon=addd(t,-((new Date().getDay()+6)%7));return{week:a=>a.d>=mon&&dn(a.d)>=0,month:a=>a.d.slice(0,7)==t.slice(0,7),year:a=>a.d.slice(0,4)==t.slice(0,4),all:()=>true}};
+const PER=()=>{const t=td(),mon=addd(t,-((new Date().getDay()+6)%7));return{week:a=>a.d>=mon&&dn(a.d)>=0,month:a=>a.d.slice(0,7)==t.slice(0,7),year:a=>a.d.slice(0,4)==t.slice(0,4),pick:a=>a.d.slice(0,7)==mo,all:()=>true}};
 const TRO='<svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></svg>';
-const cg=ac=>!ac?'':ac.r!=null?`<div class="box"><span class="mu">Charge d’entraînement</span><div><b class="${acl(ac.r)[0]}" style="font-size:18px">${acl(ac.r)[1]}</b> <span class="mu">(${sg((ac.r-1)*100,0)} % par rapport à ta moyenne)</span></div><p style="margin:8px 0 4px">7 derniers jours : <b>${Math.round(ac.a)}</b> unités sur ${ac.n} séance${ac.n>1?'s':''}.<br>Ta moyenne habituelle : <b>${Math.round(ac.c)}</b> unités par semaine, calculée sur les ${ac.w} semaines précédentes.</p><span class="mu">1 unité = 1 minute d’effort × ressenti sur 10. Exemple : 1 h à ressenti 6 = 360 unités.${ac.miss?` ${ac.miss} séance${ac.miss>1?'s':''} sans ressenti comptée${ac.miss>1?'s':''} à 5.`:''}</span></div>`:`<div class="box"><span class="mu">Charge d’entraînement</span><p style="margin:6px 0">7 derniers jours : <b>${Math.round(ac.a)}</b> unités sur ${ac.n} séance${ac.n>1?'s':''}.</p><span class="mu">La comparaison avec ta moyenne apparaît après 3 semaines d’historique (tu en es à ${Math.floor(ac.hist/7)}). 1 unité = 1 minute d’effort × ressenti sur 10.</span></div>`;
 function perf(){return CATS.map(c=>{const l=ride().filter(a=>cat(a)==c);if(l.length<4)return{c,n:l.length};
  const m=x=>({s:avg(x.map(a=>a.sp)),f:avg(x.filter(a=>a.fa).map(a=>a.fa)),r:avg(x.map(rel).filter(v=>v!=null))}),
  b=m(l.slice(-3)),p=m(l.slice(Math.max(0,l.length-6),l.length-3)),ds=b.s-p.s,df=b.f!=null&&p.f!=null?b.f-p.f:null;let v;
@@ -132,17 +127,17 @@ function perf(){return CATS.map(c=>{const l=ride().filter(a=>cat(a)==c);if(l.len
  else if(ds>-0.3)v='Niveau stable.';
  else v='Allure en baisse : fatigue, vent ou relief ? Vérifie ton sommeil et ta charge.';
  return{c,n:l.length,ds,df,v}})}
-function recs(){const o=[],B=S.acts.filter(bike),mx=(l,f)=>l.reduce((b,a)=>!b||f(a)>f(b)?a:b,null),L=mx(B.filter(a=>a.dist),a=>a.dist),H=mx(B.filter(a=>a.dp),a=>a.dp);
- if(L)o.push(['Plus longue sortie',f1(L.dist,0)+' km',L.d]);if(H)o.push(['Plus gros dénivelé',H.dp+' m',H.d]);
- CATS.forEach(c=>{const b=mx(ride().filter(a=>cat(a)==c),a=>a.sp);if(b)o.push(['Meilleure moyenne · '+c.split(' ')[0].toLowerCase(),f1(b.sp)+' km/h',b.d])});
+function recs(){const o=[],B=S.acts.filter(bike),mx=(l,f)=>l.reduce((b,a)=>!b||f(a)>f(b)?a:b,null),L=mx(B.filter(a=>a.dist),a=>a.dist),H=mx(B.filter(a=>a.dp),a=>a.dp),V=mx(ride(),a=>a.sp);
+ if(L)o.push(['Plus longue sortie',f1(L.dist,0)+' km',L.d]);if(H)o.push(['Plus grand dénivelé',H.dp+' m',H.d]);if(V)o.push(['Meilleure moyenne',f1(V.sp)+' km/h',V.d]);
  const wk={};B.forEach(a=>{const m=addd(a.d,-((new Date(a.d+'T12:00').getDay()+6)%7));wk[m]=(wk[m]||0)+(a.dist||0)});const bw=Object.entries(wk).sort((a,b)=>b[1]-a[1])[0];if(bw)o.push(['Meilleure semaine',f1(bw[1],0)+' km',bw[0]]);return o}
 function home(){
- const A=S.acts.filter(a=>a.type!='Repos'),mon=addd(td(),-((new Date().getDay()+6)%7)),w=st(A.filter(a=>a.d>=mon&&dn(a.d)>=0)),dl=['L','M','M','J','V','S','D'],dv=dl.map((_,i)=>sum(A.filter(a=>a.d==addd(mon,i)),a=>a.dist)),
+ const A=S.acts.filter(a=>a.type!='Repos'),md=td().slice(0,7),mb=A.filter(a=>bike(a)&&a.d.slice(0,7)==md),dm=new Date(+md.slice(0,4),+md.slice(5,7),0).getDate(),mv=Array.from({length:dm},(_,i)=>sum(mb.filter(a=>+a.d.slice(8)==i+1),a=>a.dist)),ml=mv.map((_,i)=>[1,5,10,15,20,25,30].includes(i+1)?i+1:'&nbsp;'),ms=[...new Set(A.map(a=>a.d.slice(0,7)).concat(md))].sort().reverse(),mn=m=>{const t=new Date(+m.slice(0,4),+m.slice(5,7)-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});return t[0].toUpperCase()+t.slice(1)},
  pa=A.filter(PER()[per]),ps=st(pa),pb=st(pa.filter(bike)),k8=[7,6,5,4,3,2,1,0].map(wkKm),pf=perf(),RC=recs(),ef=ride().filter(a=>a.fa).slice(-12).map(a=>({l:a.d,y:a.sp/a.fa*100}));
- return`<div class="hero"><span class="mu">Cette semaine</span><div class="big">${f1(w.km,0)} <small style="font-size:28px">km</small></div>${bars(dv,dl)}</div>
- <div class="seg">${[['all','Global'],['year','Cette année'],['month','Ce mois-ci'],['week','Cette semaine']].map(([k,l])=>`<button class="${per==k?'on':''}" onclick="per='${k}';R()">${l}</button>`).join('')}</div>
+ return`<div class="hero"><span class="mu">Ce mois · ${new Date().toLocaleDateString('fr-FR',{month:'long'})}</span><div class="big">${f1(sum(mb,a=>a.dist),0)} <small style="font-size:28px">km</small></div>${bars(mv,ml)}</div>
+ <div class="seg">${[['all','Global'],['year','Cette année'],['month','Ce mois-ci'],['week','Cette semaine']].map(([k,l])=>`<button class="${per==k?'on':''}" onclick="per='${k}';mo='';R()">${l}</button>`).join('')}</div>
+ <select class="msel" onchange="mo=this.value;per=mo?'pick':'month';R()"><option value="">Voir un mois précis…</option>${ms.map(m=>`<option value="${m}"${per=='pick'&&mo==m?' selected':''}>${mn(m)}</option>`).join('')}</select>
  <div class="g"><div><b>${ps.n}</b><span>séances</span></div><div><b>${hm(ps.mn)}</b><span>temps d’entraînement</span></div><div><b>${f1(pb.km,0)} km</b><span>distance à vélo</span></div><div><b>${f1(pb.dp,0)} m</b><span>dénivelé positif</span></div><div><b>${f1(pb.sp)} km/h</b><span>vitesse moyenne</span></div><div><b>${f1(pb.fc,0)} bpm</b><span>FC moyenne</span></div></div>
- ${cg(acwr())}${ridecard()}
+ ${ridecard()}
  <h2>Ta progression</h2><div class="box" style="padding:4px 14px">${pf.map(x=>x.v?`<div class="row" style="display:block"><b>${x.c}</b><br>${x.v}<br><span class="mu">${sg(x.ds)} km/h${x.df==null?'':' · FC '+sg(x.df,0)+' bpm'} sur les 3 dernières sorties par rapport aux précédentes</span></div>`:`<div class="row"><span>${x.c}</span><span class="mu">${x.n}/4 sorties</span></div>`).join('')}</div>
  <p class="mu">Il faut 4 sorties route d’une même catégorie pour mesurer ta progression. Le vent et le relief faussent un peu les comparaisons.</p>
  <h2>Kilométrage hebdomadaire</h2><div class="box">${bars(k8.map(x=>Math.round(x)),k8.map(x=>Math.round(x)))}<span class="mu">8 dernières semaines, vélo uniquement</span></div>
@@ -231,16 +226,16 @@ function plSave(){const m=Math.round(PL.st.reduce((a,x)=>a+x.d,0)/60),w=PL.w;plC
 function fcz(){const P=S.profile,est=220-(P.age||40),obs=Math.max(0,P.fcmax||0,...S.acts.map(a=>a.fm||0)),ref=obs?Math.round((est+obs)/2):est,z=(a,b)=>[Math.round(ref*a),Math.round(ref*b)],f=S.acts.filter(a=>bike(a)&&a.fa).map(a=>a.fa).sort((a,b)=>a-b);
  return{est,obs,ref,easy:z(.6,.72),endo:z(.7,.8),hard:z(.85,.92),med:f.length?f[Math.floor(f.length/2)]:null}}
 const bz=r=>r[0]+'–'+r[1]+' bpm';
-function pl(){const p=S.profile,mon=addd(td(),-((new Date().getDay()+6)%7)),r=recovBad(),ac=acwr(),wk=Math.floor((new Date(mon+'T12:00')-new Date('2026-01-05T12:00'))/6048e5),k=[1,2,3].map(wkKm),lite=k[2]>0&&k[1]>k[2]&&k[0]>k[1],easy=!!r||!!(ac&&ac.r>1.3),
+function pl(){const p=S.profile,mon=addd(td(),-((new Date().getDay()+6)%7)),r=recovBad(),wk=Math.floor((new Date(mon+'T12:00')-new Date('2026-01-05T12:00'))/6048e5),k=[1,2,3].map(wkKm),lite=k[2]>0&&k[1]>k[2]&&k[0]>k[1],easy=!!r,
  R=ride().slice(-3),lg3=R.length?Math.max(...R.map(a=>a.dist)):50,sp=R.length?avg(R.map(a=>a.sp)):25,hardLast=!!(R.length&&dn(R[R.length-1].d)<10&&R[R.length-1].rpe>=8),intense=!lite&&!easy&&!hardLast&&wk%2==1,
- km=intense?Math.max(30,Math.min(60,Math.round(.7*lg3/5)*5)):Math.max(30,Math.min(100,Math.round((lite?.7:easy?.9:1.05)*lg3/5)*5)),Z=fcz(),dur=hm(km/sp*60),tz=intense?Z.hard:lite||easy?Z.easy:Z.endo,
+ km=intense?Math.max(30,Math.min(60,Math.round(.7*lg3/5)*5)):Math.max(30,Math.min(100,Math.round((lite?.7:easy?.9:1.05)*lg3/5)*5)),wb=p.rideDay=='auto'?wxBest():null,ri=wb?(new Date(wb.d+'T12:00').getDay()==0?6:5):(p.rideDay==0?6:5),day=wb?cap(dayn(wb.d))+' · '+wb.s+' h–'+(wb.s+3)+' h':ri==6?'Dimanche':'Samedi',Z=fcz(),dur=hm(km/sp*60),tz=intense?Z.hard:lite||easy?Z.easy:Z.endo,
  mw=intense||lite||easy?`Endurance facile, 40 à 45 min, à ${bz(Z.easy)} : cadence souple, tu dois pouvoir parler sans effort.`:`Intervalles : 15 min d’échauffement, 4 × 6 min soutenues à ${bz(Z.hard)} (ressenti 7/10) avec 3 min faciles, 10 min de retour au calme.`,
  rd=`${km} km (environ ${dur}). `+(intense?`Échauffe-toi 20 min, puis 3 blocs de 10 min à ${bz(Z.hard)} (ressenti 7/10) séparés de 5 min faciles, et rentre tranquillement.`:lite||easy?`Allure tranquille à ${bz(Z.easy)}, ressenti 4/10 maximum.`:`Allure d’endurance à ${bz(Z.endo)} : tu tiens la conversation.`+(km>=70?' Mange 30 à 60 g de glucides par heure dès la première heure et bois 500 ml par heure.':'')),
- type=intense?'Intensité':'Endurance',why=lite?'Semaine allégée après 3 semaines de hausse.':easy?'Récupération basse ou charge élevée : on ménage.':hardLast?'Ta dernière sortie était très dure : place à l’endurance.':intense?'Une sortie d’intensité une semaine sur deux, avec une seule séance dure par semaine (ici la sortie).':'Semaine d’endurance : la séance dure est le MyWhoosh.';
- return{mon,ri:p.rideDay==0?6:5,lite,easy,r,ac,mw,rd,km,type,why,Z,tz,dur,ra:p.renfo==2?'A':(wk%2?'B':'A')}}
+ type=intense?'Intensité':'Endurance',why=lite?'Semaine allégée après 3 semaines de hausse.':easy?'Récupération basse : on ménage.':hardLast?'Ta dernière sortie était très dure : place à l’endurance.':intense?'Une sortie d’intensité une semaine sur deux, avec une seule séance dure par semaine (ici la sortie).':'Semaine d’endurance : la séance dure est le MyWhoosh.';
+ return{mon,ri,wb,day,lite,easy,r,mw,rd,km,type,why,Z,tz,dur,ra:p.renfo==2?'A':(wk%2?'B':'A')}}
 const IC={clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',heart:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',gauge:'<path d="M4 16a8 8 0 1 1 16 0M12 16l4-5"/>',drop:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',flag:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'},ic=(n,c='')=>`<svg viewBox="0 0 24 24" class="ic ${c}">${IC[n]}</svg>`;
 const RD='M2 36 C30 36 34 8 62 12 S100 34 118 8',ROAD=`<svg viewBox="0 0 120 44" width="120" height="44" style="flex:none"><path d="${RD}" fill="none" stroke="var(--bd)" stroke-width="7" stroke-linecap="round"/><path d="${RD}" fill="none" stroke="var(--sf)" stroke-width="1.6" stroke-dasharray="4 5" class="dash"/><circle r="5" fill="var(--rcc)"><animateMotion dur="4s" repeatCount="indefinite" path="${RD}"/></circle></svg>`;
-function ridecard(){const x=pl(),Z=x.Z,I=x.type=='Intensité',e=x.lite||x.easy,day=S.profile.rideDay==0?'Dimanche':'Samedi',
+function ridecard(){const x=pl(),Z=x.Z,I=x.type=='Intensité',e=x.lite||x.easy,day=x.day,
  sl=I?[['Échauffement','20 min progressives, sous '+Z.easy[1]+' bpm'],['3 blocs de 10 min',bz(Z.hard)+', ressenti 7/10'],['Entre les blocs','5 min faciles'],['Retour au calme','10 min tranquilles']]:e?[['Toute la sortie','Allure tranquille, '+bz(Z.easy)],['Ressenti','4/10 maximum, pas de course']]:[['Démarrage','10 premières minutes très faciles, sous '+Z.easy[1]+' bpm'],['Corps de sortie',bz(Z.endo)+' : tu tiens la conversation'],['Retour au calme','5 dernières minutes tranquilles']];
  if(!I&&!e&&x.km>=70)sl.splice(2,0,['Ravitaillement','30 à 60 g de glucides et 500 ml d’eau par heure']);
  const ch=[['clock',x.dur,'durée estimée'],['heart',bz(x.tz),'à tenir'],['gauge',I?'7/10':e?'4/10 max':'4–5/10','ressenti']];if(x.km>=70&&!I)ch.push(['drop','30–60 g/h','glucides']);
@@ -248,28 +243,24 @@ function ridecard(){const x=pl(),Z=x.Z,I=x.type=='Intensité',e=x.lite||x.easy,d
  <div class="rc-main"><div><div class="big">${x.km}<small style="font-size:26px"> km</small></div><span class="rc-bd">${I?'Intensité':'Endurance'}</span></div>${ROAD}</div>
  <div class="rc-c">${ch.map(c=>`<div>${ic(c[0],c[0]=='heart'?'heart':'')}<b>${c[1]}</b><span>${c[2]}</span></div>`).join('')}</div>
  <ol class="rc-s">${sl.map(s=>`<li><b>${s[0]}</b><span>${s[1]}</span></li>`).join('')}</ol>
- <p class="mu" style="margin:8px 0 2px">${x.why}</p>
+ <p class="mu" style="margin:8px 0 2px">${x.why}${x.wb?' Jour choisi grâce à la météo (créneau noté '+x.wb.sc+'/5).':''}</p>
  <p class="mu" style="margin:0">${Z.med?`Ta FC moyenne habituelle : ${Z.med} bpm${!I&&!e&&Z.med>Z.endo[1]?`, au-dessus de la cible d’endurance : ralentis pour rester sous ${Z.endo[1]} bpm`:''}. `:''}Repère indicatif calculé avec ton âge (${Z.est} bpm théoriques) et ton maximum observé (${Z.obs} bpm) : référence de ${Z.ref} bpm. Ce n’est pas un test d’effort.</p></div>`}
 function plan(){const p=S.profile,x=pl(),days=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'],
  rows=[['Repos ou marche','Récupération, 20 à 30 min maximum.'],x.ra=='B'?['Renforcement B : haut du corps',RB,'B']:['Renforcement A : jambes',RA,'A'],['Repos','Récupération.'],['MyWhoosh',x.mw],p.renfo==2?['Renforcement B : haut du corps',RB,'B']:['Repos ou mobilité','Mobilité douce 10 min si tu en as envie.'],['Repos','Récupération.'],['Repos ou balade très facile','30 à 45 min très tranquilles.']];
  rows[x.ri]=['Sortie route · '+x.type,x.rd];
- return`<h2>Semaine en cours</h2>${ridecard()}<div class="box"><div class="f"><label>Jour de sortie<select onchange="S.profile.rideDay=+this.value;save();R()"><option value="6"${p.rideDay!=0?' selected':''}>Samedi</option><option value="0"${p.rideDay==0?' selected':''}>Dimanche</option></select></label><label>Renforcement par semaine<select onchange="S.profile.renfo=+this.value;save();R()"><option${p.renfo!=2?' selected':''}>1</option><option${p.renfo==2?' selected':''}>2</option></select></label></div></div>
+ return`<h2>Semaine en cours</h2>${ridecard()}<div class="box"><div class="f"><label>Jour de sortie<select onchange="S.profile.rideDay=this.value=='auto'?'auto':+this.value;save();R()"><option value="auto"${p.rideDay=='auto'?' selected':''}>Auto (météo)</option><option value="6"${p.rideDay===6?' selected':''}>Samedi</option><option value="0"${p.rideDay===0?' selected':''}>Dimanche</option></select></label><label>Renforcement par semaine<select onchange="S.profile.renfo=+this.value;save();R()"><option${p.renfo!=2?' selected':''}>1</option><option${p.renfo==2?' selected':''}>2</option></select></label></div></div>
  ${x.r?'<div class="box wa">Ta récupération est basse aujourd’hui : remplace la séance prévue par du facile ou du repos.</div>':''}
  ${x.lite?'<div class="box wa">Ton volume a augmenté 3 semaines de suite : semaine allégée, environ 30 % de volume en moins.</div>':''}
- ${x.ac&&x.ac.r>1.3?'<div class="box wa">Ta charge récente est élevée : les séances de la semaine sont adoucies.</div>':''}
  <div class="box" style="padding:4px 14px">${rows.map((q,i)=>{const d=addd(x.mon,i),done=S.acts.filter(a=>a.d==d&&a.type!='Repos');
  return`<div class="row ${d==td()?'today':''}"><div><b>${days[i]} · ${q[0]}</b><br><span class="mu">${q[1]}</span>${q[2]?`<br><button class="b" onclick="plStart('${q[2]}')">▶ Séance guidée</button>`:''}</div><span class="${done.length?'ok':'mu'}">${done.length?'✓ '+(sum(done,a=>a.dist)?f1(sum(done,a=>a.dist),0)+' km':'fait'):''}</span></div>`}).join('')}</div>
- <p class="mu">La sortie alterne endurance et intensité d’une semaine sur l’autre, avec une seule séance dure par semaine. Sa distance (30 à 100 km) s’adapte à tes dernières sorties, à ta récupération et à ta charge.</p>`}
+ <p class="mu">La sortie alterne endurance et intensité d’une semaine sur l’autre, avec une seule séance dure par semaine. Sa distance (30 à 100 km) s’adapte à tes dernières sorties, à ta récupération et à la météo du week-end.</p>`}
 function coachV(){
- const A=S.acts,P=S.profile,x=pl(),ac=acwr(),w=st(A.filter(a=>dn(a.d)<7)),b=st(A.filter(a=>dn(a.d)>=7&&dn(a.d)<14)),pf=perf(),F=[],I=[],W=[],
+ const A=S.acts,P=S.profile,x=pl(),w=st(A.filter(a=>dn(a.d)<7)),b=st(A.filter(a=>dn(a.d)>=7&&dn(a.d)<14)),pf=perf(),F=[],I=[],W=[],
  n7=A.filter(a=>a.type!='Repos'&&dn(a.d)<7),rest=[1,2,3,4,5,6,7].filter(k=>!A.some(a=>a.type!='Repos'&&dn(a.d)==k)).length,hard=n7.filter(a=>a.rpe>=8).length;
- if(ac&&ac.r>1.3)W.push(`Tu en fais ${Math.round((ac.r-1)*100)} % de plus que d’habitude sur 7 jours : garde une semaine plus calme.`);
- else if(ac&&ac.r!=null&&ac.r>=0.8)F.push('Ta charge est régulière : tu progresses sans te brûler.');
- else if(ac&&ac.r!=null)I.push('Semaine plus légère que d’habitude : tu peux reprendre doucement.');
  if(n7.length&&rest==0)W.push('Aucun jour de repos depuis 7 jours : prévois-en un.');
  if(hard>=3)W.push('3 séances très dures ou plus en 7 jours : garde les prochaines faciles.');
  if(x.r)W.push('Ta récupération est basse aujourd’hui : fais facile ou repose-toi.');
- if(!(ac&&ac.r!=null)&&b.km>0&&w.km>b.km*1.2)W.push(`Volume en hausse de ${Math.round((w.km/b.km-1)*100)} % sur 7 jours : ne dépasse pas +10 % la semaine suivante.`);
+ if(b.km>0&&w.km>b.km*1.2)W.push(`Volume en hausse de ${Math.round((w.km/b.km-1)*100)} % sur 7 jours : ne dépasse pas +10 % la semaine suivante.`);
  const ll=lg(),pr=Math.max(0,...ll.filter(q=>dn(q.d)>=7&&dn(q.d)<35).map(q=>q.dist)),l7=ll.find(q=>dn(q.d)<7);
  if(l7&&pr&&l7.dist>pr*1.3)W.push(`Ta sortie de ${f1(l7.dist,0)} km est bien plus longue que ta précédente : allonge de 10 à 15 % maximum.`);
  if(ll[0]&&ll[0].fa&&P.fcmax&&ll[0].fa/P.fcmax>=0.9)W.push(`Dernière sortie longue : FC moyenne de ${ll[0].fa} bpm, proche de ton maximum observé. Ralentis un peu.`);
@@ -284,7 +275,7 @@ function coachV(){
  const rt=A.filter(a=>dn(a.d)<14&&a.rpe);if(rt.length>=3&&!rt.some(a=>a.rpe>=7))I.push('Aucune séance soutenue ces 2 semaines : garde les intervalles du MyWhoosh.');
  const LS=l=>l.length?`<ul>${l.slice(0,3).map(y=>`<li>${y}</li>`).join('')}</ul>`:'<p class="mu">Rien à signaler.</p>',rc=S.recov.find(y=>y.d==td())||{},
  S5=(id,l,v)=>`<label>${l}<select id="r_${id}">${[1,2,3,4,5].map(i=>`<option${i==(v||3)?' selected':''}>${i}</option>`).join('')}</select></label>`;
- return`<h2>Cette semaine, fais simple</h2><div class="box"><ul><li><b>MyWhoosh :</b> ${x.mw}</li><li><b>Sortie ${P.rideDay==0?'dimanche':'samedi'} (${x.type}) :</b> ${x.rd}</li><li><b>Renforcement :</b> ${P.renfo==2?'2 séances':'1 séance'} guidée${P.renfo==2?'s':''} de 15 min, avec tes haltères de 2,5 kg (jambes, pecs, dos, bras, gainage).</li></ul>${rbtn(x,P)}</div>
+ return`<h2>Cette semaine, fais simple</h2><div class="box"><ul><li><b>MyWhoosh :</b> ${x.mw}</li><li><b>Sortie ${x.ri==6?'dimanche':'samedi'} (${x.type}) :</b> ${x.rd}</li><li><b>Renforcement :</b> ${P.renfo==2?'2 séances':'1 séance'} guidée${P.renfo==2?'s':''} de 15 min, avec tes haltères de 2,5 kg (jambes, pecs, dos, bras, gainage).</li></ul>${rbtn(x,P)}</div>
  <h2>Bilan des 7 jours</h2><div class="box"><p>${w.n} séance${w.n>1?'s':''} · ${f1(w.km,0)} km · ${hm(w.mn)}</p><h3 class="ok">Ça va bien</h3>${LS(F)}<h3>À améliorer</h3>${LS(I)}<h3 class="wa">À surveiller</h3>${LS(W)}</div>
  <h2>Récupération du jour</h2><div class="box"><div class="f">${S5('sl','Sommeil (5 = très bon)',rc.sl)}${S5('fa','Fatigue (5 = épuisé)',rc.fa)}${S5('so','Douleurs musculaires',rc.so)}${S5('mo','Motivation',rc.mo)}</div><button class="b" onclick="saveRec()">Enregistrer</button></div>
  <p class="mu">Ces conseils viennent de règles de calcul intégrées à l’appli, pas d’un modèle de langage, et ne remplacent pas un avis médical. En cas de douleur thoracique, de malaise ou d’essoufflement inhabituel, consulte un médecin. La puissance estimée par Strava n’est pas utilisée. Les fourchettes de FC sont des repères indicatifs calculés avec ton âge et tes données, pas un test d’effort.</p>`}
@@ -356,22 +347,25 @@ function wend(h,now){const o=[];[...new Set(h.time.map(x=>x.slice(0,10)))].filte
  for(let s=8;s<=13;s++){const i=h.time.indexOf(d+'T'+String(s).padStart(2,'0')+':00');if(i<0||h.time[i]<now||i+2>=h.time.length)continue;
   const r=[0,1,2].map(k=>rowAt(h,i+k)),sc=wscore(r),pp=Math.max(...r.map(z=>z.pp)),v=avg(r.map(z=>z.v));if(!b||sc>b.sc||(sc==b.sc&&(pp<b.pp||(pp==b.pp&&v<b.v))))b={d,s,r,sc,pp,v}}
  if(b)o.push(b)});return o}
+const cap=s=>s[0].toUpperCase()+s.slice(1);
+function wxBest(){if(!wx||!wx.h||Date.now()-wx.t>1296e5)return null;const now=new Date().toLocaleString('sv',{timeZone:'Europe/Paris'}).slice(0,13).replace(' ','T')+':00',W=wend(wx.h,now).sort((a,b)=>a.d.localeCompare(b.d));if(!W.length)return null;
+ return W.filter(x=>(new Date(x.d)-new Date(W[0].d))/864e5<=1).sort((a,b)=>b.sc-a.sc||a.pp-b.pp||a.v-b.v)[0]}
+const slot=(x,top)=>`<div class="box" style="${top?'border-color:var(--ac);border-width:2px':''}"><span class="mu">${top?'Meilleur créneau du week-end · il fixe le jour de ta sortie conseillée':'Autre créneau'}</span><div style="font:700 ${top?21:17}px/1.2 var(--f);margin:4px 0">${cap(dayn(x.d))}<br>de ${x.s} h à ${x.s+3} h</div><div style="color:var(--wa);font-size:${top?20:17}px">${'★'.repeat(x.sc)}${'☆'.repeat(5-x.sc)} <b style="color:var(--tx);font-size:15px">${x.sc}/5 · ${SL[x.sc]}</b></div><span class="mu">${Math.round(avg(x.r.map(z=>z.T)))} °C · pluie ${x.pp} % · vent ${Math.round(x.v)} km/h${x.v>=12?' · départ vers le '+ln(wdir(x.r)):''}</span></div>`;
 function wxV(){let o='<h2>Météo à Bourges</h2>',rows=null,W=[];
  if(wx&&wx.h){const h=wx.h,now=new Date().toLocaleString('sv',{timeZone:'Europe/Paris'}).slice(0,13).replace(' ','T')+':00',i=h.time.findIndex(x=>x>=now);
-  if(i>=0&&i+3<h.time.length)rows=[0,1,2,3].map(k=>rowAt(h,i+k));W=wend(h,now)}
+  if(i>=0&&i+3<h.time.length)rows=[0,1,2,3].map(k=>rowAt(h,i+k));W=wend(h,now).sort((a,b)=>a.d.localeCompare(b.d))}
  if(wxErr)o+=`<div class="box ko">${wxErr}</div>`;
+ const bw=wxBest();
+ if(bw){o+=slot(bw,1);const ot=W.filter(x=>x.d!=bw.d);if(ot.length)o+='<h2>Autres dates</h2>'+ot.map(x=>slot(x,0)).join('')+'<p class="mu">Au-delà de 3 jours, la prévision reste incertaine : revérifie la veille.</p>'}
  if(rows){const s=wscore(rows),av=avg(rows.map(r=>r.v)),mx=Math.max(...rows.map(r=>r.pp)),mt=Math.min(...rows.map(r=>r.T)),mg=Math.max(...rows.map(r=>r.g)),tips=[],vd=wdir(rows);
   if(mx>=60||rows.some(r=>r.mm>=0.5))tips.push('Pluie probable : prends une veste imperméable.');
   if(mt<6)tips.push('Il fait froid : gants, couvre-chaussures et coupe-vent.');
   if(mg>=40)tips.push('Rafales fortes : prudence en terrain découvert.');
-  o+=`<div class="box" style="text-align:center"><span class="mu">Conseil pour sortir dans les 3 prochaines heures</span><div class="big">${s}<small style="font-size:30px">/5</small></div><b>${SL[s]}</b><div style="font-size:22px;color:var(--wa)">${'★'.repeat(s)}${'☆'.repeat(5-s)}</div><span class="mu">Note calculée avec la pluie, la température, le vent, les rafales et le ciel.</span></div>
+  o+=`<h2>Dans les 3 prochaines heures</h2><div class="box" style="text-align:center"><span class="mu">Conseil pour sortir maintenant</span><div class="big">${s}<small style="font-size:30px">/5</small></div><b>${SL[s]}</b><div style="font-size:22px;color:var(--wa)">${'★'.repeat(s)}${'☆'.repeat(5-s)}</div><span class="mu">Note calculée avec la pluie, la température, le vent, les rafales et le ciel.</span></div>
   <div class="box">${compass(vd)}<p style="text-align:center;margin:8px 0 0"><span style="color:var(--ac)">●</span> Le vent souffle vers le ${ln((vd+180)%360)}<br><span style="color:var(--ok)">●</span> <b>Départ conseillé : vers le ${ln(vd)} (${cp(vd)})</b></p><p class="mu" style="text-align:center">${av<12?'Vent faible : choisis ton parcours librement.':'Tu auras le vent de face à l’aller et dans le dos au retour.'}</p></div>
   <div class="box" style="padding:4px 14px">${rows.map((r,k)=>`<div class="row"><div><b>${k?'+'+k+' h':'Maintenant'}</b> <span class="mu">${r.t}</span><br>${r.c[0]} ${r.c[1]}<br><span class="mu">Pluie ${r.pp} % · ${f1(r.mm)} mm</span></div><div style="text-align:right"><b style="font:700 30px var(--f)">${Math.round(r.T)} °C</b><br><span style="display:inline-block;font-size:24px;line-height:1;transform:rotate(${r.d+180}deg)">↑</span> ${Math.round(r.v)} km/h<br><span class="mu">de ${cp(r.d)}, vers ${cp((r.d+180)%360)} · rafales ${Math.round(r.g)}</span></div></div>`).join('')}</div>
-  ${tips.length?`<div class="box"><ul>${tips.map(x=>`<li>${x}</li>`).join('')}</ul></div>`:''}`;
-  if(W.length){const bw=[...W].sort((a,b)=>b.sc-a.sc||a.pp-b.pp||a.v-b.v)[0];
-   o+=`<h2>Meilleur créneau du week-end</h2><div class="box" style="border-color:var(--ac)"><span class="mu">Fenêtre de 3 h entre 8 h et 16 h</span><div style="font:700 21px/1.2 var(--f);text-transform:capitalize;margin:4px 0">${dayn(bw.d)}<br>de ${bw.s} h à ${bw.s+3} h</div><div style="color:var(--wa);font-size:20px">${'★'.repeat(bw.sc)}${'☆'.repeat(5-bw.sc)} <b style="color:var(--tx);font-size:16px">${bw.sc}/5 · ${SL[bw.sc]}</b></div></div>
-   <div class="box" style="padding:4px 14px">${W.map(x=>`<div class="row"><div><b style="text-transform:capitalize">${dayn(x.d)}</b><br><span class="mu">${x.s} h – ${x.s+3} h · ${Math.round(avg(x.r.map(z=>z.T)))} °C · pluie ${x.pp} % · vent ${Math.round(x.v)} km/h${x.v>=12?' · départ vers le '+ln(wdir(x.r)):''}</span></div><b>${x.sc}/5</b></div>`).join('')}</div><p class="mu">Au-delà de 3 jours, la prévision reste incertaine : revérifie la veille.</p>`}
-  o+=`<p class="mu">Mis à jour à ${new Date(wx.t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}. Prévisions Open-Meteo.</p>`}
+  ${tips.length?`<div class="box"><ul>${tips.map(x=>`<li>${x}</li>`).join('')}</ul></div>`:''}
+  <p class="mu">Mis à jour à ${new Date(wx.t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}. Prévisions Open-Meteo.</p>`}
  else if(wx&&!wxErr)o+='<div class="box wa">Les dernières prévisions enregistrées sont trop anciennes : actualise.</div>';
  else if(!wxErr)o+='<p class="mu">Chargement…</p>';
  return o+`<button class="b" onclick="loadWx()" ${wxBusy?'disabled':''}>${wxBusy?'Actualisation…':'Actualiser'}</button>`}
