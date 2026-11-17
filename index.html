@@ -54,6 +54,12 @@ nav .on{color:var(--ac);font-weight:700}
 .ic{width:20px;height:20px;stroke:var(--rcc);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.rc-chip .ic{width:16px;height:16px}.ic.heart{animation:beat 1.1s ease-in-out infinite;transform-origin:center}.dash{animation:dsh 1s linear infinite}
 .rc-s{list-style:none;counter-reset:s;padding:0;margin:12px 0 0}.rc-s li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;margin:8px 0}.rc-s li::before{content:counter(s);flex:none;width:22px;height:22px;border-radius:50%;background:var(--rcc);color:var(--on);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}.rc-s b{display:block;font-size:14px}.rc-s span{font-size:13px;color:var(--mu)}
 @media (prefers-reduced-motion:reduce){.rc,.rc *{animation:none!important}}
+.pgs{display:grid;gap:10px}.pg{background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:14px;animation:up .5s ease both}
+.pg-h{display:flex;align-items:center;gap:10px}.pg-h>div{flex:1}.pg-h b{display:block;font:700 15px/1.2 var(--f)}.pg-h .mu{font-size:12px}
+.pg-ic{flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,currentColor 14%,var(--sf))}.pg-ic svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.pg-d{font:700 17px var(--f)}.pg-b{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}.pg-b>div{flex:1;min-width:0}.pg-b b{display:block;font-size:14px}.pg-b .mu{font-size:12px}
+.sp .ar{fill:currentColor;opacity:.12}.c-ok{color:var(--ok)}.c-wa{color:var(--wa)}.c-mu{color:var(--mu)}.c-ac{color:var(--ac)}
+.dots{display:flex;gap:4px}.dots i{width:9px;height:9px;border-radius:50%;background:var(--bd)}.dots i.on{background:var(--ac)}
 .msel{margin-top:10px}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 </style></head><body>
@@ -126,10 +132,18 @@ function perf(){return CATS.map(c=>{const l=ride().filter(a=>cat(a)==c);if(l.len
  else if(ds>-0.3&&df!=null&&df<=-3)v='Même allure avec une FC plus basse : ton endurance s’améliore.';
  else if(ds>-0.3)v='Niveau stable.';
  else v='Allure en baisse : fatigue, vent ou relief ? Vérifie ton sommeil et ta charge.';
- return{c,n:l.length,ds,df,v}})}
+ const M=[[/Relief/,'mu','Comparaison peu fiable'],[/Progrès/,'ok','Progrès net'],[/pas forcément/,'ac','Plus rapide, plus d’effort'],[/endurance/,'ok','Endurance en hausse'],[/stable/,'mu','Stable'],[/baisse/,'wa','Allure en baisse']].find(z=>z[0].test(v));
+ return{c,n:l.length,ds,df,v,k:M[1],t:M[2],s:l.slice(-8).map(a=>a.sp)}})}
 function recs(){const o=[],B=S.acts.filter(bike),mx=(l,f)=>l.reduce((b,a)=>!b||f(a)>f(b)?a:b,null),L=mx(B.filter(a=>a.dist),a=>a.dist),H=mx(B.filter(a=>a.dp),a=>a.dp),V=mx(ride(),a=>a.sp);
  if(L)o.push(['Plus longue sortie',f1(L.dist,0)+' km',L.d]);if(H)o.push(['Plus grand dénivelé',H.dp+' m',H.d]);if(V)o.push(['Meilleure moyenne',f1(V.sp)+' km/h',V.d]);
  const wk={};B.forEach(a=>{const m=addd(a.d,-((new Date(a.d+'T12:00').getDay()+6)%7));wk[m]=(wk[m]||0)+(a.dist||0)});const bw=Object.entries(wk).sort((a,b)=>b[1]-a[1])[0];if(bw)o.push(['Meilleure semaine',f1(bw[1],0)+' km',bw[0]]);return o}
+const PI={ok:'<path d="M7 17L17 7M9 7h8v8"/>',wa:'<path d="M7 7l10 10M17 9v8H9"/>',mu:'<path d="M5 12h14"/>',ac:'<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>'};
+function spark(v,k){if(!v||v.length<2)return'';const W=120,H=36,mn=Math.min(...v),mx=Math.max(...v),r=(mx-mn)||1,X=i=>3+i*(W-6)/(v.length-1),Y=x=>H-5-(x-mn)/r*(H-12),p=v.map((x,i)=>X(i)+','+Y(x)).join(' ');
+ return`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="sp c-${k}" style="flex:none"><polygon points="${X(0)},${H} ${p} ${X(v.length-1)},${H}" class="ar"/><polyline points="${p}" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${X(v.length-1)}" cy="${Y(v[v.length-1])}" r="3" fill="currentColor"/></svg>`}
+function pgc(x){const nm=x.c.split(' ')[0],sb=x.c.slice(x.c.indexOf('(')+1,-1);
+ if(!x.v)return`<div class="pg"><div class="pg-h"><span class="pg-ic c-mu"><svg viewBox="0 0 24 24">${PI.mu}</svg></span><div><b>${nm}</b><span class="mu">${sb}</span></div><span class="dots">${[1,2,3,4].map(i=>`<i class="${i<=x.n?'on':''}"></i>`).join('')}</span></div><span class="mu">${x.n}/4 sorties : encore ${4-x.n} pour mesurer ta progression.</span></div>`;
+ return`<div class="pg"><div class="pg-h"><span class="pg-ic c-${x.k}"><svg viewBox="0 0 24 24">${PI[x.k]}</svg></span><div><b>${nm}</b><span class="mu">${sb}</span></div><span class="pg-d c-${x.k}">${sg(x.ds)} km/h</span></div>
+ <div class="pg-b"><div><b class="c-${x.k}">${x.t}</b><span class="mu">${x.df==null?'':'FC '+sg(x.df,0)+' bpm · '}3 dernières sorties vs précédentes</span></div>${spark(x.s,x.k)}</div></div>`}
 function home(){
  const A=S.acts.filter(a=>a.type!='Repos'),md=td().slice(0,7),mb=A.filter(a=>bike(a)&&a.d.slice(0,7)==md),dm=new Date(+md.slice(0,4),+md.slice(5,7),0).getDate(),mv=Array.from({length:dm},(_,i)=>sum(mb.filter(a=>+a.d.slice(8)==i+1),a=>a.dist)),ml=mv.map((_,i)=>[1,5,10,15,20,25,30].includes(i+1)?i+1:'&nbsp;'),ms=[...new Set(A.map(a=>a.d.slice(0,7)).concat(md))].sort().reverse(),mn=m=>{const t=new Date(+m.slice(0,4),+m.slice(5,7)-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});return t[0].toUpperCase()+t.slice(1)},
  pa=A.filter(PER()[per]),ps=st(pa),pb=st(pa.filter(bike)),k8=[7,6,5,4,3,2,1,0].map(wkKm),pf=perf(),RC=recs(),ef=ride().filter(a=>a.fa).slice(-12).map(a=>({l:a.d,y:a.sp/a.fa*100}));
@@ -138,7 +152,7 @@ function home(){
  <select class="msel" onchange="mo=this.value;per=mo?'pick':'month';R()"><option value="">Voir un mois précis…</option>${ms.map(m=>`<option value="${m}"${per=='pick'&&mo==m?' selected':''}>${mn(m)}</option>`).join('')}</select>
  <div class="g"><div><b>${ps.n}</b><span>séances</span></div><div><b>${hm(ps.mn)}</b><span>temps d’entraînement</span></div><div><b>${f1(pb.km,0)} km</b><span>distance à vélo</span></div><div><b>${f1(pb.dp,0)} m</b><span>dénivelé positif</span></div><div><b>${f1(pb.sp)} km/h</b><span>vitesse moyenne</span></div><div><b>${f1(pb.fc,0)} bpm</b><span>FC moyenne</span></div></div>
  ${ridecard()}
- <h2>Ta progression</h2><div class="box" style="padding:4px 14px">${pf.map(x=>x.v?`<div class="row" style="display:block"><b>${x.c}</b><br>${x.v}<br><span class="mu">${sg(x.ds)} km/h${x.df==null?'':' · FC '+sg(x.df,0)+' bpm'} sur les 3 dernières sorties par rapport aux précédentes</span></div>`:`<div class="row"><span>${x.c}</span><span class="mu">${x.n}/4 sorties</span></div>`).join('')}</div>
+ <h2>Ta progression</h2><div class="pgs">${pf.map(pgc).join('')}</div>
  <p class="mu">Il faut 4 sorties route d’une même catégorie pour mesurer ta progression. Le vent et le relief faussent un peu les comparaisons.</p>
  <h2>Kilométrage hebdomadaire</h2><div class="box">${bars(k8.map(x=>Math.round(x)),k8.map(x=>Math.round(x)))}<span class="mu">8 dernières semaines, vélo uniquement</span></div>
  <h2>Efficacité</h2><div class="box">${line(ef)}<span class="mu">Vitesse par 100 bpm sur tes sorties route. Plus la courbe monte, plus tu vas vite pour un même effort cardiaque.</span></div>
@@ -356,7 +370,7 @@ function wxV(){let o='<h2>Météo à Bourges</h2>',rows=null,W=[];
   if(i>=0&&i+3<h.time.length)rows=[0,1,2,3].map(k=>rowAt(h,i+k));W=wend(h,now).sort((a,b)=>a.d.localeCompare(b.d))}
  if(wxErr)o+=`<div class="box ko">${wxErr}</div>`;
  const bw=wxBest();
- if(bw){o+=slot(bw,1);const ot=W.filter(x=>x.d!=bw.d);if(ot.length)o+='<h2>Autres dates</h2>'+ot.map(x=>slot(x,0)).join('')+'<p class="mu">Au-delà de 3 jours, la prévision reste incertaine : revérifie la veille.</p>'}
+ if(bw)o+=slot(bw,1)+'<p class="mu">Au-delà de 3 jours, la prévision reste incertaine : revérifie la veille.</p>';
  if(rows){const s=wscore(rows),av=avg(rows.map(r=>r.v)),mx=Math.max(...rows.map(r=>r.pp)),mt=Math.min(...rows.map(r=>r.T)),mg=Math.max(...rows.map(r=>r.g)),tips=[],vd=wdir(rows);
   if(mx>=60||rows.some(r=>r.mm>=0.5))tips.push('Pluie probable : prends une veste imperméable.');
   if(mt<6)tips.push('Il fait froid : gants, couvre-chaussures et coupe-vent.');
